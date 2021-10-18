@@ -5,6 +5,14 @@ import schedule
 import time
 import datetime
 import bybit
+import requests
+
+
+# Telegram Funtion
+def send_tele_msg(msg):
+    base_url = f'https://api.telegram.org/bot2031005847:AAGAs94VzLbg9msKGCun79VxR0xTKcybLug/sendMessage?chat_id=-678853724&text="{msg}"'
+    requests.get(base_url)
+
 # Google Sheets Funtion-------------------------------------------------------
 SERVICE_ACCOUNT_FILE = 'keys.json'
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -26,19 +34,24 @@ client = bybit.bybit(test=False, api_key=config.BYBIT_API_KEY, api_secret=config
 
 print('Running...')
 def job():
-    print("Updating Balance...")
-    # Ready to send to Google Sheets
+    
     balance = client.Wallet.Wallet_getBalance(coin="BTC").result()
-    balance_data_limit = balance[0]['rate_limit_status']
-    #balance_request = 
-    print(f'Remaining Balance Requests {balance_data_limit}/120')
-    total_BTC_balance = [[(balance[0]['result']['BTC']['wallet_balance'])]]
+    gs_total_BTC_balance = [[(balance[0]['result']['BTC']['wallet_balance'])]]
     total_B = balance[0]['result']['BTC']['wallet_balance']
-    request = sheet.values().update(spreadsheetId=SPREADSHEET_ID, range="Main!J1", valueInputOption="USER_ENTERED", body={"values":total_BTC_balance}).execute()
-    now = datetime.datetime.now()
-    print(f"Updated Balance to ({total_B}) at {now.strftime('%y-%m-%d %H:%M:%S')}")
 
-schedule.every(5).minutes.do(job)
+    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range="Main!J1").execute()
+    old_B = result.get('values')
+    old_B = old_B[0][0]
+    old_B = float(old_B)
+    
+    if total_B > old_B or total_B < old_B:
+        now = datetime.datetime.now()
+        request = sheet.values().update(spreadsheetId=SPREADSHEET_ID, range="Main!J1", valueInputOption="USER_ENTERED", body={"values":gs_total_BTC_balance}).execute()
+        message = f"Updated Balance to ({total_B}) at {now.strftime('%y-%m-%d  (%H:%M:%S)')}"
+        print(message)
+        send_tele_msg(message)
+
+schedule.every(60).seconds.do(job)
 
 while True:
     schedule.run_pending()

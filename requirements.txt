@@ -25,6 +25,7 @@ colorama==0.4.4
 cryptography==35.0.0
 cycler==0.10.0
 distlib==0.3.3
+environ==1.0
 filelock==3.3.0
 fqdn==1.5.1
 future==0.18.2
